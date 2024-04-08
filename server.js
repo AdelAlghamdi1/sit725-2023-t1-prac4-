@@ -1,13 +1,20 @@
-var express = require("express");
-var app = express();
-var port = process.env.PORT || 3001;
+require('dotenv').config();
+const express = require('express');
+const mongoose = require('mongoose');
+const Card = require('./public/models/cards');
+const app = express();
+const port = process.env.PORT || 3001
+
+;
 
 app.use(express.static(__dirname + '/public'));
-app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Define card data
-const cardList = [
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('MongoDB Connected'))
+    .catch(err => console.error(err));
+
+Card.insertMany([
     {
         title: "Kitten 1",
         image: "images/cat1.png",
@@ -26,15 +33,22 @@ const cardList = [
         link: "#",
         description: "And finally, our third charming kitten!"
     }
-];
-
-// REST API endpoint to get card data
-app.get('/api/cards', (req, res) => {
-    console.log("Fetching card list");
-    res.json({statusCode: 200, data: cardList, message: "Success"});
+]).then(() => {
+    console.log('Sample card data inserted into MongoDB');
+}).catch(err => {
+    console.error('Error inserting sample card data into MongoDB:', err);
 });
 
 
+app.get('/api/card', async (req, res) => {
+    try {
+        const cards = await Card.find();
+        res.json({ statusCode: 200, data: cards, message: "Success" });
+    } catch (error) {
+        console.error('Error fetching cards from MongoDB', error);
+        res.status(500).send('Error fetching cards');
+    }
+});
 
 app.listen(port, () => {
     console.log("App listening on port: " + port);
